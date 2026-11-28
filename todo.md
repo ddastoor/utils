@@ -57,6 +57,18 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     - **Import** a file → its settings replace the stored ones and the apps that show them change at once.
     - **Which controls become settings** is the owner's choice, app by app (CLAUDE.md §1 rule 1: nothing else is stored) —
       to be listed with him before building (e.g. the EPUB Reader's look and place, the voice and speed of the speech tabs).
+    - **The owner's wording of 28 Nov 2026** (it settles the open points above): "the storage for all the settings in the
+      settings page should be in the browser. Each app should have, if necessary, … a section of that app in the settings
+      page, and … also show in the UI of the settings page and settings tab. … when I change something in the settings page,
+      it should be reflected in the browser storage, and then it should … reflect in that part of the app that requires it.
+      And the other way around, … when I change things in the app, for example, add another radio station in the world
+      radio, that should then reflect in the settings page, browser settings. And also whenever something is changed in the
+      overall consolidated settings, a new settings file should be immediately downloaded to the local device. So something
+      like superutils_settings_ mmdd_ hour minute." → the store is the browser's (localStorage); a section for each app that
+      has settings; both ways kept in step; a file after every change — `superutils_settings_YYYYMMDD_HHMM.json` (the year
+      added so files sort across years — told to the owner; a burst of changes one file, a moment after the last; a PC with
+      a folder chosen writes there, else a download). **When:** next, right after the Clipart Maker (told to the owner,
+      28 Nov 2026, as he asked about it twice), unless he says otherwise.
     - **A World Radio section** (owner, 28 Nov 2026: "You should remember my favorite stations once the settings page is built
       out. So now the settings page will have the world radio section in it"): the favourite stations of World Radio
       (`docs/potentials.md` #116 — not built yet) — kept in the browser, in the settings file, exported and imported with the
