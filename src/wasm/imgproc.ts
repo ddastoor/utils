@@ -429,9 +429,60 @@ export function bindImgproc(e: any) {
         free() { for (const p of [pa, pb, sa, sb, out]) e.p_free(p); pa = pb = sa = sb = 0; },
       };
     },
+    /** The Long Screenshot Stitcher's screenshots (potentials #87; wasm/imgproc/stitch.c): each one's row signatures stay in the
+     *  module's memory under its id, so that every pair is compared without copying them again. */
+    stitcher() {
+      const shots = new Map<number, { h: number; K: number; s: number; t: number; m: number }>();
+      const out = e.p_malloc(56);
+      const get = (id: number) => { const x = shots.get(id); if (!x) throw new Error(`no screenshot ${id}`); return x; };
+      return {
+        /** a screenshot's rows (its pixels are not kept); returns the bands a row is known by. `smooth`: each band over
+         *  three rows (a soft copy, sent through a chat app) */
+        add(id: number, img: Img, smooth = false): number {
+          const p = put(img.data), h = img.height, K = e.p_scroll_bands(img.width);
+          const s = e.p_malloc(h * K * 4), t = e.p_malloc(h * 4), m = e.p_malloc(h * 4);
+          try { e.p_st_rows(p, img.width, h, smooth ? 1 : 0, s, t, m); } finally { e.p_free(p); }
+          shots.get(id) && this.remove(id);
+          shots.set(id, { h, K, s, t, m });
+          return K;
+        },
+        /** where b stands against a (p_st_pair): b's row y shows a's row y + shift */
+        pair(ia: number, ib: number, tol = 64): StitchPair {
+          const A = get(ia), B = get(ib);
+          if (A.K !== B.K) throw new Error('screenshots of different widths');
+          e.p_st_pair(A.s, A.t, A.m, A.h, B.s, B.t, B.m, B.h, A.K, tol, out);
+          const o = new Int32Array(mem(), out, 14);
+          return { found: o[0] === 1, d: o[1], f: o[2] / 4, shift: o[1] + o[2] / 4, score: o[3], other: o[4], y0: o[5], y1: o[6], matched: o[7], missed: o[8], same: o[9] / 1000, votes: o[10], otherShift: o[11] / 4, allMatched: o[12], allMissed: o[13] };
+        },
+        /** b's rows that match a's at the same place (p_st_same): 0 no, 1 yes, 2 yes and the row has detail */
+        same(ia: number, ib: number, tol = 64): Uint8Array {
+          const A = get(ia), B = get(ib);
+          if (A.h !== B.h || A.K !== B.K) return new Uint8Array(B.h);
+          const o = e.p_malloc(B.h);
+          try { e.p_st_same(A.s, B.s, B.t, B.h, B.K, tol, o); return new Uint8Array(mem().slice(o, o + B.h)); } finally { e.p_free(o); }
+        },
+        remove(id: number) { const x = shots.get(id); if (x) { e.p_free(x.s); e.p_free(x.t); e.p_free(x.m); shots.delete(id); } },
+        free() { for (const id of [...shots.keys()]) this.remove(id); e.p_free(out); },
+      };
+    },
+    /** where to join a (above) and b (below; b's row y shows a's row y + d) between b's rows y0 and y1 (p_st_seam) */
+    stitchSeam(a: Img, b: Img, d: number, y0: number, y1: number): { row: number; here: number; mean: number; off: number } {
+      const pa = put(a.data), pb = put(b.data), o = e.p_malloc(16);
+      try {
+        e.p_st_seam(pa, a.height, pb, b.height, a.width, Math.round(d), Math.round(y0), Math.round(y1), o);
+        const r = new Int32Array(mem(), o, 4);
+        return { row: r[0], here: r[1] / 1000, mean: r[2] / 1000, off: r[3] / 1e6 };
+      } finally { e.p_free(pa); e.p_free(pb); e.p_free(o); }
+    },
   };
 }
 export type Imgproc = ReturnType<typeof bindImgproc>;
+/** Where screenshot b stands against a (p_st_pair): `found` a shift; b's row y shows a's row y + shift (shift = d + f, f a
+ *  quarter of a row at a time); the stretch they share (b's rows y0 … y1), its score and the best of any other shift; the
+ *  rows with detail matched and not in it; `same` the share of b's rows with detail that match a's at the same place (a
+ *  duplicate: near 1; −0.001 for other heights); the shift's votes; the best other shift (0: none) — where rows repeat; over
+ *  all the rows the shift lays over each other, rows matched and not (a coincidence sits among rows that do not match). */
+export interface StitchPair { found: boolean; d: number; f: number; shift: number; score: number; other: number; y0: number; y1: number; matched: number; missed: number; same: number; votes: number; otherShift: number; allMatched: number; allMissed: number }
 /** Floats per page in p_book_fit's answer (wasm/imgproc/flatten.c, FB_REC). */
 export const BOOK_REC = 26;
 /** A page bookFit found: its model (rec, as p_book_render takes it), the flat page in model units (x0, y0, x1, y1), the

@@ -2922,3 +2922,4 @@ API void p_scroll_match(const uint8_t *a, const int32_t *sa, const uint8_t *b, c
 #include "flatten.c" /* the Book Page Flattener (uses cm_label above) */
 #include "kindle.c" /* PDF for Kindle: where a region of a page may be cut */
 #include "flat.c" /* the Clipart Maker's flat colours, the Image to SVG tab's black and white */
+#include "stitch.c" /* the Long Screenshot Stitcher: screenshots placed against each other, where to join them */

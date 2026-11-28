@@ -1,0 +1,791 @@
+{
+ "chat": {
+  "width": 720,
+  "height": 1600,
+  "page": 6082,
+  "shots": [
+   {
+    "file": "chat-1.png",
+    "offset": -160,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      637,
+      1342,
+      697,
+      1404
+     ]
+    ]
+   },
+   {
+    "file": "chat-2.png",
+    "offset": 883,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      295,
+      169,
+      425,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      412,
+      720,
+      519
+     ]
+    ]
+   },
+   {
+    "file": "chat-3.png",
+    "offset": 1748,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      295,
+      169,
+      425,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      622,
+      720,
+      729
+     ]
+    ]
+   },
+   {
+    "file": "chat-4.png",
+    "offset": 2702,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      315,
+      169,
+      405,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      853,
+      720,
+      960
+     ]
+    ]
+   },
+   {
+    "file": "chat-5.png",
+    "offset": 3783,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      315,
+      169,
+      405,
+      209
+     ]
+    ]
+   }
+  ],
+  "order": [
+   "chat-1.png",
+   "chat-2.png",
+   "chat-3.png",
+   "chat-4.png",
+   "chat-5.png"
+  ]
+ },
+ "chat-dark": {
+  "width": 720,
+  "height": 1600,
+  "page": 6082,
+  "shots": [
+   {
+    "file": "chatdark-1.png",
+    "offset": -160,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      637,
+      1342,
+      697,
+      1404
+     ]
+    ]
+   },
+   {
+    "file": "chatdark-2.png",
+    "offset": 984,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      295,
+      169,
+      425,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      437,
+      720,
+      544
+     ]
+    ]
+   },
+   {
+    "file": "chatdark-3.png",
+    "offset": 2002,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      315,
+      169,
+      405,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      684,
+      720,
+      791
+     ]
+    ]
+   },
+   {
+    "file": "chatdark-4.png",
+    "offset": 3020,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      315,
+      169,
+      405,
+      209
+     ]
+    ]
+   }
+  ],
+  "order": [
+   "chatdark-1.png",
+   "chatdark-2.png",
+   "chatdark-3.png",
+   "chatdark-4.png"
+  ]
+ },
+ "chat-sent": {
+  "width": 720,
+  "height": 1600,
+  "page": 9317,
+  "shots": [
+   {
+    "file": "chatsent-1.jpg",
+    "offset": -160.0,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      637,
+      1342,
+      697,
+      1404
+     ]
+    ]
+   },
+   {
+    "file": "chatsent-2.jpg",
+    "offset": 857.3333333333333,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      294,
+      169,
+      426,
+      210
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      400,
+      720,
+      508
+     ]
+    ]
+   },
+   {
+    "file": "chatsent-3.jpg",
+    "offset": 1811.3333333333333,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      294,
+      169,
+      426,
+      210
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      624,
+      720,
+      732
+     ]
+    ]
+   },
+   {
+    "file": "chatsent-4.jpg",
+    "offset": 2765.333333333333,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      314,
+      169,
+      406,
+      210
+     ]
+    ]
+   }
+  ],
+  "order": [
+   "chatsent-1.jpg",
+   "chatsent-2.jpg",
+   "chatsent-3.jpg",
+   "chatsent-4.jpg"
+  ]
+ },
+ "web": {
+  "width": 720,
+  "height": 1600,
+  "page": 3770,
+  "shots": [
+   {
+    "file": "web-1.png",
+    "offset": -160,
+    "top": 240,
+    "bottom": 1464,
+    "float": []
+   },
+   {
+    "file": "web-2.png",
+    "offset": 944,
+    "top": 136,
+    "bottom": 1464,
+    "float": []
+   },
+   {
+    "file": "web-3.png",
+    "offset": 1944,
+    "top": 136,
+    "bottom": 1464,
+    "float": []
+   },
+   {
+    "file": "web-4.png",
+    "offset": 2306,
+    "top": 136,
+    "bottom": 1464,
+    "float": []
+   }
+  ],
+  "order": [
+   "web-1.png",
+   "web-2.png",
+   "web-3.png",
+   "web-4.png"
+  ]
+ },
+ "web-jpeg": {
+  "width": 720,
+  "height": 1600,
+  "page": 3770,
+  "shots": [
+   {
+    "file": "webjpeg-1.jpg",
+    "offset": -160,
+    "top": 240,
+    "bottom": 1464,
+    "float": []
+   },
+   {
+    "file": "webjpeg-2.jpg",
+    "offset": 1044,
+    "top": 136,
+    "bottom": 1464,
+    "float": []
+   },
+   {
+    "file": "webjpeg-3.jpg",
+    "offset": 2094,
+    "top": 136,
+    "bottom": 1464,
+    "float": []
+   }
+  ],
+  "order": [
+   "webjpeg-1.jpg",
+   "webjpeg-2.jpg",
+   "webjpeg-3.jpg"
+  ]
+ },
+ "small": {
+  "width": 720,
+  "height": 1600,
+  "page": 6082,
+  "shots": [
+   {
+    "file": "small-1.png",
+    "offset": -160,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      637,
+      1342,
+      697,
+      1404
+     ]
+    ]
+   },
+   {
+    "file": "small-2.png",
+    "offset": 1048,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      295,
+      169,
+      425,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      452,
+      720,
+      559
+     ]
+    ]
+   }
+  ],
+  "order": [
+   "small-1.png",
+   "small-2.png"
+  ]
+ },
+ "large": {
+  "width": 720,
+  "height": 1600,
+  "page": 6082,
+  "shots": [
+   {
+    "file": "large-1.png",
+    "offset": 476,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      295,
+      169,
+      425,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      314,
+      720,
+      421
+     ]
+    ]
+   },
+   {
+    "file": "large-2.png",
+    "offset": 603,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      295,
+      169,
+      425,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      344,
+      720,
+      451
+     ]
+    ]
+   }
+  ],
+  "order": [
+   "large-1.png",
+   "large-2.png"
+  ]
+ },
+ "repeat": {
+  "width": 720,
+  "height": 1600,
+  "page": 2743,
+  "shots": [
+   {
+    "file": "repeat-1.png",
+    "offset": -160,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      637,
+      1342,
+      697,
+      1404
+     ]
+    ]
+   },
+   {
+    "file": "repeat-2.png",
+    "offset": 603,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      315,
+      169,
+      405,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      764,
+      720,
+      871
+     ]
+    ]
+   },
+   {
+    "file": "repeat-3.png",
+    "offset": 1311,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      315,
+      169,
+      405,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      1326,
+      720,
+      1433
+     ]
+    ]
+   }
+  ],
+  "order": [
+   "repeat-1.png",
+   "repeat-2.png",
+   "repeat-3.png"
+  ]
+ },
+ "mix": {
+  "width": 720,
+  "height": 1600,
+  "page": 6082,
+  "shots": [
+   {
+    "file": "mix-1.png",
+    "offset": -160,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      637,
+      1342,
+      697,
+      1404
+     ]
+    ]
+   },
+   {
+    "file": "mix-2.png",
+    "offset": 883,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      295,
+      169,
+      425,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      412,
+      720,
+      519
+     ]
+    ]
+   },
+   {
+    "file": "mix-3.jpg",
+    "offset": 1748,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      295,
+      169,
+      425,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      622,
+      720,
+      729
+     ]
+    ],
+    "scaled": 480
+   },
+   {
+    "file": "mix-4.png",
+    "offset": 2702,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      315,
+      169,
+      405,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      853,
+      720,
+      960
+     ]
+    ]
+   }
+  ],
+  "order": [
+   "mix-1.png",
+   "mix-2.png",
+   "mix-3.jpg",
+   "mix-4.png"
+  ]
+ },
+ "shuffled": {
+  "width": 720,
+  "height": 1600,
+  "page": 6082,
+  "shots": [
+   {
+    "file": "IMG_2041.png",
+    "offset": 883,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      295,
+      169,
+      425,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      412,
+      720,
+      519
+     ]
+    ]
+   },
+   {
+    "file": "IMG_2038.png",
+    "offset": -160,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      637,
+      1342,
+      697,
+      1404
+     ]
+    ]
+   },
+   {
+    "file": "IMG_2044.png",
+    "offset": 2702,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      315,
+      169,
+      405,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      853,
+      720,
+      960
+     ]
+    ]
+   },
+   {
+    "file": "IMG_2040.png",
+    "offset": 1748,
+    "top": 160,
+    "bottom": 1432,
+    "float": [
+     [
+      295,
+      169,
+      425,
+      209
+     ],
+     [
+      637,
+      1342,
+      697,
+      1404
+     ],
+     [
+      714,
+      622,
+      720,
+      729
+     ]
+    ]
+   }
+  ],
+  "order": [
+   "IMG_2038.png",
+   "IMG_2041.png",
+   "IMG_2040.png",
+   "IMG_2044.png"
+  ],
+  "same": {
+   "IMG_2042.png": "IMG_2040.png"
+  },
+  "alone": [
+   "IMG_2039.png"
+  ]
+ }
+}
