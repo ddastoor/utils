@@ -25,8 +25,12 @@ imgproc.wasm's C; CLAUDE.md §3 Cartoonizer; unit `anime` 28, e2e `cartoon-anime
 **The Windows check:** run 19 (the 56 suites built since run 18) 2,758 / 2,772 — 14 fixed in b3f7adb; run 20 (those 14) 580 / 586 —
 the Cartoonizer's WebGL probe (TF.js's context is refused where Chrome draws in software only), the Settings page's private window
 (Chrome on Windows does not show it as one — the suite says what the browser shows now), a dark-theme contrast check to read
-(the colours are named now), two waits under load; docs/BUGHUNT.md "Windows check, run 20". **Next:** run 21 (cartoon, cartoon-anime,
-settings and the other suites changed), read it, fix what it finds; then the owner's pick from docs/potentials.md.
+(the colours are named now), two waits under load; docs/BUGHUNT.md "Windows check, run 20"; **run 21** (the changed suites, the
+anime looks, Python, lazy loading) **1,346 / 1,346** — its notes: Chrome 158 shows no private window (the Settings page then treats it
+as a normal one; no crash on Windows), the contrast failure was a 150 ms fade measured half-way (axe waits now). **Next:** the new
+"Linux Chrome check" (`.github/workflows/linux-chrome.yml`) with `settings.` — does Chrome 158 on Linux close itself when a private
+window reads the folder back (Chromium 153 does)? If it does, the Settings page needs another way; then the owner's pick from
+docs/potentials.md.
 **▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**
 **#36** (the start page's note of the other device's apps), **#34** (Watermark: the first page of a document with or without
 the mark), **#33** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff: Side by side, the lines of a change paired by the

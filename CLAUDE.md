@@ -212,7 +212,9 @@ that affects it.
 > (PipeWire) — the tab says what Wayland changes and how to work with it. Checked across all PC tabs in `todo.md` #13 — the tabs that
 > differ carry the shared note (`linuxBanner(tips)`): Screencast, Screenshot (its countdown window may not stay on top on
 > Wayland), YouTube Clip, Screen Info; `tests/e2e/os.e2e.mjs` opens every PC tab as Windows, X11 and Wayland.
-> **Windows:** `.github/workflows/windows.yml` runs the browser suites in Google Chrome on GitHub's Windows runner (by hand);
+> **Windows:** `.github/workflows/windows.yml` runs the browser suites in Google Chrome on GitHub's Windows runner (by hand); **Chrome
+> on Linux:** `.github/workflows/linux-chrome.yml` in the newest stable Google Chrome of GitHub's Ubuntu runner (by hand — the sandbox
+> tests Playwright's Chromium, a few versions behind: Chrome 158 shows no private window by its quota, Chromium 153 does);
 > every file name must be valid on Windows (`tests/unit/repo-paths`), and scripts take paths with `fileURLToPath`.
 
 > ## 🗣️ Languages — don't bother about Hindi (owner, 20 Nov 2026; standing)
