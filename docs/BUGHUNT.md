@@ -3537,6 +3537,18 @@ Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
   as they were; no settings file is written there (the switch off from the start) — `src/lib/color.ts` looks for `document`, so the
   suite stubs no `document`.
 
+## Windows check, run 21 (28 Nov 2026): the suites changed for run 20, the anime looks, Python, lazy loading
+1,346 of 1,346 checks in 9 suites (the four Cartoonizer suites — the anime looks among them —, Settings, Python, the regex flavours,
+lazy loading, the OCR copy). What its notes showed:
+- **Chrome 158 does not show a private window** (quota 10 GiB, the same as a normal profile's; script heap 4 GiB): the Settings page
+  treats it as a normal window — the folder is stored in IndexedDB and read back after a reload, and Chrome 158 on Windows did not close
+  itself (Chromium 153 on Linux does). Whether Chrome 158 on Linux does: the "Linux Chrome check" (`.github/workflows/linux-chrome.yml`,
+  new — the newest stable Chrome of GitHub's Ubuntu runner).
+- **The dark-theme contrast failure was a transition half-way:** the "All" tab fades out of its "on" colours over 150 ms when the
+  page leaves the start page in the same document; axe measured `#8a92a0 on #262a41` (4.49 : 1). The suite waits for the page's
+  transitions to end before axe now (a fresh document has none; the sweep waits 500 ms).
+- Python's Stop in the middle of a flood passed when run alone (under load it took 5.3 s).
+
 ## Windows check, run 20 (28 Nov 2026): the 14 suites fixed after run 19
 580 of 586 checks; the six that failed:
 - **The Cartoonizer's forced-WebGL comparison (two checks).** Run 19's note was wrong: the runner's Chrome does give a page a WebGL

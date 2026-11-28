@@ -371,6 +371,9 @@ export default async ({ base, page: newPage, ok, tmp, devices, info }) => {
     });
     await ax.reload(); await ax.goto(`${base}#/settings`);
     await ax.locator('#settings-worldclock .st-cities li').nth(1).waitFor({ timeout: 10000 });
+    // the category row's "All" tab fades out of its "on" colours (150 ms) when the page leaves the start page in the same document:
+    // axe measured it half-way on Windows (#8a92a0 on #262a41, 4.49 : 1 — the Windows check, run 21); its transitions end first
+    await ax.waitForFunction(() => !document.getAnimations().some((a) => a.playState === 'running' && a.effect?.getComputedTiming().iterations !== Infinity), null, { timeout: 5000 }).catch(() => {});
     if (!(await ax.evaluate(() => !!window.axe))) await ax.addScriptTag({ content: AXE });
     // a contrast failure names its colours (axe's data): what the browser drew is not seen here
     const v = await ax.evaluate(async (tags) => (await window.axe.run(document, { runOnly: { type: 'tag', values: tags }, resultTypes: ['violations'] })).violations.map((x) => `${x.id}: ${x.nodes.slice(0, 2).map((m) => { const d = m.any?.[0]?.data; return m.target.join(' ') + (d?.contrastRatio ? ` (${d.fgColor} on ${d.bgColor}: ${d.contrastRatio} : 1, ${d.fontSize} ${d.fontWeight})` : ''); }).join(', ')}`), TAGS);
