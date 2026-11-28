@@ -6,7 +6,7 @@
 # truth.json: every file, the words that must be found in it, queries with the files they must find (in the order the tab
 # shows them: all the words before some, then the better match, then the newest — by the date in the file's name), the
 # pictures without text, and every text drawn on each screenshot (the measure of a reading).
-# Needs: pip install pillow.   python3 scripts/make-finder-shots.py
+# Needs: pip install pillow pillow-heif.   python3 scripts/make-finder-shots.py
 import json, shutil
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
@@ -17,9 +17,16 @@ OUT.mkdir(parents=True, exist_ok=True)
 NOTO = ROOT / 'node_modules/@expo-google-fonts/noto-sans'
 REG, BOLD = NOTO / '400Regular/NotoSans_400Regular.ttf', NOTO / '700Bold/NotoSans_700Bold.ttf'
 _f = {}
-DRAWN = []  # every text drawn on the picture being made: truth.json's 'texts' (what a reading should find)
+DRAWN, BOXES = [], []  # every text drawn on the picture being made (truth.json's 'texts': what a reading should find) and each word's box
 def T(d, xy, text, **kw):
     d.text(xy, text, **kw); DRAWN.append(text)
+    f, (x, y) = kw['font'], xy
+    _, top, _, bottom = d.textbbox(xy, text, font=f)
+    at = 0
+    for w in text.split(' '):
+        if w:
+            x0 = x + f.getlength(text[:at]); BOXES.append([w, round(x0, 1), top, round(x0 + f.getlength(w), 1), bottom])
+        at += len(w) + 1
 def font(bold, size):
     k = (bold, size)
     if k not in _f: _f[k] = ImageFont.truetype(str(BOLD if bold else REG), size)
@@ -41,7 +48,7 @@ def status(d, clock, fg):
 def chat(name, msgs, dark=False, clock='19:07'):
     bg, bar, fg, sub = ((11, 20, 26), (31, 44, 52), (233, 237, 239), (134, 150, 160)) if dark else ((239, 231, 222), (255, 255, 255), (17, 27, 33), (102, 119, 129))
     inb, outb = ((32, 44, 51), (0, 92, 75)) if dark else ((255, 255, 255), (217, 253, 211))
-    DRAWN.clear(); im = Image.new('RGB', (W, H), bg); d = ImageDraw.Draw(im)
+    DRAWN.clear(); BOXES.clear(); im = Image.new('RGB', (W, H), bg); d = ImageDraw.Draw(im)
     d.rectangle([0, 0, W, 160], fill=bar); status(d, clock, fg)
     d.ellipse([24, 74, 84, 134], fill=(232, 140, 70)); d.text((44, 86), name[0], font=font(True, 28), fill=(255, 255, 255))  # the avatar's letter: not counted
     T(d, (104, 74), name, font=font(True, 28), fill=fg); T(d, (104, 110), 'online', font=font(False, 20), fill=sub)
@@ -60,7 +67,7 @@ def chat(name, msgs, dark=False, clock='19:07'):
 def page(title, rows, clock='08:15', dark=False, appbar=(255, 255, 255), size=(W, H)):
     w, h = size
     bg, fg, sub = ((18, 18, 18), (235, 235, 235), (160, 160, 160)) if dark else ((255, 255, 255), (20, 20, 20), (95, 99, 104))
-    DRAWN.clear(); im = Image.new('RGB', size, bg); d = ImageDraw.Draw(im)
+    DRAWN.clear(); BOXES.clear(); im = Image.new('RGB', size, bg); d = ImageDraw.Draw(im)
     if h > w: status(d, clock, fg)
     top = 60 if h > w else 20
     d.rectangle([0, top, w, top + 90], fill=appbar); T(d, (28, top + 24), title, font=font(True, 32), fill=fg if appbar == (255, 255, 255) else (255, 255, 255))
@@ -73,8 +80,8 @@ def page(title, rows, clock='08:15', dark=False, appbar=(255, 255, 255), size=(W
         y += 10
     return im
 
-shots, texts = {}, {}
-def keep(name, im): shots[name] = im; texts[name] = ' '.join(DRAWN)
+shots, texts, boxes = {}, {}, {}
+def keep(name, im): shots[name] = im; texts[name] = ' '.join(DRAWN); boxes[name] = list(BOXES)
 # 1. a chat: the train booking
 keep('Screenshot_20261102-190712_WhatsApp.png', chat('Asha Iyer', [
     ('in', 'Hi! Are we still on for Saturday? Amma is asking what time we leave.', '19:02'),
@@ -135,6 +142,15 @@ keep('Screenshot 2026-11-03 at 10.12.44.png', page('Hill View Residency - Bookin
     'Address: Plot 14, Old Market Road, Lonavala 410401   Phone 0211 427 3388',
     None, '~Free cancellation until 6 Nov 2026, 18:00.',
 ], size=(1280, 800), appbar=(33, 33, 33)))
+# 8. a picture as an iPhone keeps its photos: HEIC (the browser cannot open it itself; libheif reads it), no date in its name
+keep('IMG_4471.HEIC', page('Boarding pass', [
+    '**Flight 6E 2134  Pune to Goa',
+    'Gate 14   Seat 22A   Boarding 06:40',
+    'Ref QX7RTA   Passenger: Ravi Kumar',
+], appbar=(81, 45, 168), clock='06:12'))
+heic = shots.pop('IMG_4471.HEIC'); texts.pop('IMG_4471.HEIC'); boxes.pop('IMG_4471.HEIC')
+import pillow_heif
+pillow_heif.from_pillow(heic).save(OUT / 'IMG_4471.HEIC', quality=92)
 for name, im in shots.items(): im.save(OUT / name, optimize=True)
 # photos: two papers from the camera helpers' set, and a picture with no text
 SNAPS = ROOT / 'tests/fixtures/snaps'
@@ -173,8 +189,12 @@ truth = {
         ['paneer tikka', ['IMG_20261127_213012.jpg']],
     ],
     'none': ['IMG_20261012_073000.jpg'],
+    # the HEIC picture (read in the browser only: MuPDF, the unit suite's decoder, has no HEIC)
+    'heic': {'file': 'IMG_4471.HEIC', 'words': ['Boarding', 'QX7RTA', '22A'], 'queries': [['boarding pass', ['IMG_4471.HEIC']], ['seat 22a', ['IMG_4471.HEIC']]]},
     # every text drawn on each screenshot (the measure of a reading: the words of these found in it)
     'texts': texts,
+    # and where each word was drawn: [word, x0, y0, x1, y1] in the picture's pixels (the marks on a picture are held to them)
+    'boxes': boxes,
 }
 (OUT / 'truth.json').write_text(json.dumps(truth, indent=1))
-print('wrote', len(shots) + 3, 'pictures to', OUT)
+print('wrote', len(shots) + 4, 'pictures to', OUT)

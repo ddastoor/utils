@@ -55,8 +55,9 @@ export async function prepare(img: Img, ops: PrepOps): Promise<{ img: Img; scree
  *  grain of a photo without text: "pt" at 5; the test screenshots' words read right were 28 % sure and more), keeps its
  *  place as "·" — the hits' word numbers are the reading's — and matches nothing */
 export const indexWords = (words: OcrWord[]) => words.map((w) => (w.conf >= 15 && findNorm(w.text)) || '·');
-/** whether a reading found any text: a word of two letters or digits read 30 % sure or more */
-export const hasText = (words: OcrWord[]) => words.some((w) => w.conf >= 30 && findNorm(w.text).length >= 2);
+/** whether a reading found any text: a word of three letters or digits read 30 % sure or more (the grain of a photo without
+ *  text reads as a few short guesses — "pt", "PN" in the test photo of coffee) */
+export const hasText = (words: OcrWord[]) => words.some((w) => w.conf >= 30 && findNorm(w.text).length >= 3);
 
 /** what a search found, in the order it is shown: the pictures with all the words first, then those with more of them, then
  *  the engine's score (the words next to each other, exact before a slip …), then the newest */

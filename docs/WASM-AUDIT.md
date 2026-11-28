@@ -2158,3 +2158,26 @@ Looked at first (STANDING RULE #1):
   hidden areas' pixels by imgproc.wasm — our C: `p_mosaic_rect` (new: a grid at a random place, slivers joined, each block's colour moved by a
   random amount — a plain mosaic's exact means are what Depix matches candidate texts against), `p_blur_rect`, `p_fill_rect`; the PDF by MuPDF's
   HTML layout (`src/lib/htmlpdf.ts`, as the document generators), PNG / JPEG by jSquash (OxiPNG, MozJPEG).
+
+### 210. `finder` — Screenshot Finder (28 Nov 2026; potentials #76)
+- **What it needs:** the words inside hundreds of screenshots and photos read on the device; a search of them as it is typed that forgives what
+  people type (words together or apart, a number with or without its spaces, a slip of the keyboard) and what the OCR reads (O for 0, l for 1, a
+  digit of a password); the words found marked on the picture.
+- **The reading — existing WebAssembly:** Tesseract (tesseract.js-core, already on the site for the OCR tab), its sparse-text mode (11): every word
+  wherever it stands. A pool of readers of its own (`sparseReader` in `src/lib/ocr.ts`): the OCR tab's reading path (`readPage` — page finder,
+  levelling, PaddleOCR for soft photos) takes several seconds a photo; a folder of hundreds of screenshots needs a fraction of a second each, and a
+  screenshot has no page to find. PaddleOCR (on the site) was not added: its detector and recogniser on ONNX Runtime take longer than Tesseract on a
+  screenshot, and Tesseract reads the screenshots almost whole once they are made ready (below).
+- **Making a picture ready — our C (imgproc.wasm), measured:** the seven test screenshots (275 words) and four photographed pages (984 words), the
+  share of their words read — as they were 96.0 / 69.2 %; a dark screen turned light 96.0 / 69.2 %; turned light and Sauvola's thresholds (Tesseract's
+  `thresholding_method` 2) 98.9 / 74.4 %; turned light and the document clean-up (`p_doc_enhance`, colour) 98.5 / **76.3 %**; the clean-up and
+  Sauvola **99.6** / 75.0 %. Chosen: the clean-up for every picture, Sauvola for screenshots (`p_flat_share` ≥ 0.2: a fifth of the picture exactly
+  one colour), Otsu's for photos. Existing ops only (`histogram`, `invert`, `flatShare`, `docEnhance`) — nothing new in imgproc.
+- **The search — our C (textcore.wasm, `wasm/textcore/find.c`, 25 KB of the module):** looked at: the browser's own `Intl` collation (no fuzzy
+  matching), MiniSearch / Fuse.js / FlexSearch (JavaScript; fuzzy by edit distance only, nothing of the OCR's confusions or of words read apart),
+  tantivy / SQLite FTS5 in WebAssembly (megabytes, a tokenizer of their own: "4521 678 903" three tokens, "4521678903" one — what the Finder must
+  join; FTS5 is on the site in the SQLite tab's worker, 0.9 MB, and has no edit distance). None knows a screenshot's numbers read in groups or the
+  OCR's slips; find.c is a few hundred lines on the module the search box already loads (the shell's search, the Photo Dictionary's ranking and
+  the XY-cut are there). Its rules are held by the unit suite (35 checks of the engine; the test pictures' queries read in Node and in the browser).
+- **Decision:** Tesseract as it is; imgproc.wasm's existing ops; our C for the index and the search; the dates from file names, the read size and the
+  order in TypeScript (`src/lib/finder.ts`: string glue and a sort).

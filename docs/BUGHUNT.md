@@ -3833,4 +3833,19 @@ Found while building it (each fixed, with a check in the suites):
 - **Under load** (the sweeps with the new tab): three checks made robust — `os` and `camera` wait for the tab to draw (a fixed
   pause was too short), the stitcher's Copy reads the shared clipboard again when another suite wrote to it between its copy and its read.
 
-
+## Screenshot Finder (28 Nov 2026; built — potentials #76)
+Found while building it (each fixed, with a check in the suites):
+- **A dark chat's sent messages were never read:** Tesseract's one global threshold (Otsu's) took the green bubbles of a dark-mode chat, turned light,
+  for ink — every word in them was lost ("wifi" of "What is the wifi at your place?"; the search for "wifi password" found only "password"). Each
+  picture is now made ready by imgproc.wasm — turned light, then the document clean-up, which evens out bubbles and lighting —, and a screenshot is
+  read with Sauvola's local thresholds (measured: the test screenshots 96.0 → 99.6 % of their words, photos 69.2 → 76.3 %; docs/WASM-AUDIT.md 210).
+- **A password read with one slip was not found:** "kT7mq2Vr9w" read "KT7mq2Vrow" (o for 9) — a slip of the keyboard is allowed for words of up to
+  seven letters, and the OCR's own table (O for 0) has no o for 9. A long code of letters and digits (eight characters and more) now matches with one
+  slip (`find.c`); a number one digit apart still matches nothing (unit).
+- **The grain of a photo without text came up as words** ("pt", "PN"): words read less than 15 % sure are left out of the index, and a picture is
+  "without text" when no word of three letters or digits is read 30 % sure (in the browser the coffee photo gave "pr" and "PN" more surely than in
+  Node — the canvas resamples otherwise than MuPDF; both suites check it).
+- **A long scrolling screenshot would have been read at half its width** (a cap of 6 megapixels alone: 1080 × 20000 → 569 px wide, its text too small):
+  a tall picture is read at least 1,000 px wide, at most 12,000 long (unit).
+- **The Screenshot Annotator's swatches used a colour variable nothing defined** (`--c`, set on each swatch by the page): the CSS variables check,
+  run with this tab, caught it; it has a default now (the swatches look as before).

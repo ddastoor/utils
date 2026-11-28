@@ -50,7 +50,9 @@ Kindle, PDF and ID tools for India, the owner's larger asks, camera helpers) was
 2. **Screenshots and scams** — ~~87 Long Screenshot Stitcher~~ (**built 28 Nov 2026** — CLAUDE.md §3 "Long Screenshot Stitcher"; its own
    engine in imgproc.wasm — votes, then the best stretch of matching rows —, on the Screenshot tab's row signatures; 43 KB) ·
    ~~113 Screenshot Annotator & How-To Guide~~ (**built 28 Nov 2026** — CLAUDE.md §3 "Screenshot Annotator & How-To Guide"; the canvas's
-   drawing, imgproc.wasm's mosaic with a random grid, MuPDF's HTML layout for the guide; 44 KB) · 76 Screenshot Finder (the OCR) · 82 Is This Screenshot Real? · 83 Scam & QR Check ·
+   drawing, imgproc.wasm's mosaic with a random grid, MuPDF's HTML layout for the guide; 44 KB) · ~~76 Screenshot Finder~~ (**built 28 Nov 2026** —
+   CLAUDE.md §3 "Screenshot Finder"; a pool of Tesseract readers in the sparse-text mode, each picture made ready by imgproc.wasm, the search our C in
+   textcore.wasm — words together or apart, the OCR's slips; 44 KB) · 82 Is This Screenshot Real? · 83 Scam & QR Check ·
    101 Clean Link (83 and 101 share one link checker: the real site's name, look-alike letters). ≈ 1 MB.
 3. **The camera, round 2** — 100 Magnifier · 80 Measure from a Photo · 98 Old Photo Album Scanner · 103 Handwriting Analysis ·
    92 Social Media Sizer. Shared: the live camera, the page finder and the homography, MediaPipe's faces. ≈ 0 MB.
@@ -261,7 +263,6 @@ Slides, Regex from Examples — works the same on Windows and Linux (Chrome or E
 (CLAUDE.md §1, rule 8); its suite runs on both kinds of system's paths and file dialogs where they differ.
 | # | New tab | Engine | Platform | Status |
 |---|---|---|---|---|
-| 76 | **Screenshot Finder**: drop hundreds of screenshots and photos (a folder on a PC) and search the words inside them — "that PNR", "the Wi-Fi password someone sent"; the text is read on the device and forgotten when the tab is left | Tesseract (on the site), File System Access on PCs | both (big folders best on PC) | waiting |
 | 79 | **Phone ⇄ PC Beam**: send files or text between a phone and a PC straight over the Wi-Fi — no app, account or server: the two screens connect by scanning each other's QR codes (the connection offer and answer, compressed), then the browser's own peer-to-peer link carries the files | WebRTC data channels (the browser's, compiled C++) + zxing (on the site) + fflate; to check first: networks that keep devices apart (guest / office Wi-Fi), iPhone Safari | both | waiting |
 | 80 | **Measure from a Photo**: an A4 sheet or a bank card (85.6 × 54 mm) in the picture → tap its corners → measure anything in the same plane — a window, a wall, a sofa, a TV — straightened by one homography | imgproc's warp + homography (on the site) | both | waiting |
 | 82 | **Is This Screenshot Real?**: a "payment successful" UPI screenshot or any photo checked for signs of editing — the software that saved it (ExifTool), a second JPEG save (error-level analysis, the quantization tables), patched or copied areas — with plain words on what it can and cannot prove (signs, never a proof that a picture is genuine) | ExifTool (on the site) + own C in imgproc / metacore (error levels, copy-move search) + MozJPEG (on the site) | both | waiting |

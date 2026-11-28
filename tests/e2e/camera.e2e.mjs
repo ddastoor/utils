@@ -88,6 +88,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     ['img2pdf', () => [...document.querySelectorAll('.pdf-tile-label')].filter((l) => /camera-\d{8}/.test(l.textContent)).length === 2],
     ['slideshow', () => /^2 photos/.test(document.querySelector('.tool-body').innerText.split('\n').find((l) => /photos? ·/.test(l)) || '')],
     ['annotate', () => [...document.querySelectorAll('.an-item')].filter((li) => /camera-\d{8}-\d{6}(-\d+)?\.jpg/.test(li.textContent)).length === 2],
+    ['finder', () => /^2 pictures read\.$/.test(document.querySelector('.fi-status')?.textContent || '')],
   ];
   for (const [id, done] of several) {
     await step(`${id}: the webcam stays open — two Snaps add two photos, Done closes it`, async () => {

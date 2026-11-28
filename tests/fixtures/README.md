@@ -262,3 +262,11 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
   `mix-*` (the chat's first four, the third sent as a 480-px JPEG), `IMG_2038` … `IMG_2044.png` (the chat's under other names, a duplicate and a
   page of something else). `truth.json`: for each screenshot the page row its row y shows (y + offset), the part that scrolls, what floats over it;
   each set's order top to bottom.
+- `finder/` — the Screenshot Finder's test pictures, made by `python3 scripts/make-finder-shots.py` (needs pillow and pillow-heif; Noto Sans, OFL): a
+  phone's screenshots of our own making, in the manner of such apps (no real app's design) — a chat about a train booking
+  (`Screenshot_20261102-190712_WhatsApp.png`), a dark-mode chat with a Wi-Fi password, a bank's SMS with an OTP, an order e-mail, the phone's
+  "About phone", a payment —, a PC's screenshot of a booking page (`Screenshot 2026-11-03 at 10.12.44.png`), an iPhone's HEIC (`IMG_4471.HEIC`, a
+  boarding pass), and photos: the camera helpers' school circular and restaurant bill (copies of `snaps/notice-school.jpg`, `snaps/restaurant.jpg`)
+  and the coffee photo without text (`images/coffee.jpg`). Every name, number and page is made up. `truth.json`: the words each picture must give,
+  queries with the pictures they find in the tab's order, the pictures without text, every text drawn on each screenshot and where each word was
+  drawn (`boxes`: word, x0, y0, x1, y1 in the picture's pixels).

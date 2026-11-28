@@ -2,9 +2,9 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**203 tabs** in 11 categories — 135 PC + mobile, 65 PC only, 3 mobile only.
+**204 tabs** in 11 categories — 136 PC + mobile, 65 PC only, 3 mobile only.
 
-## Images (23)
+## Images (24)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -23,6 +23,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `collage` | Collage Maker | PC + mobile | Combine photos into a grid. | collage, grid, combine, merge photos, layout, montage, side by side |
 | `stitch` | Long Screenshot Stitcher | PC + mobile | Screenshots of one chat or page, taken while scrolling, joined into one tall picture — the parts they share found by themselves. | long screenshot, stitch screenshots, scrolling screenshot, join screenshots, combine screenshots, merge screenshots, screenshot stitcher, tall screenshot, … |
 | `annotate` | Screenshot Annotator & How-To Guide | PC + mobile | Arrows, boxes, numbered steps, text, highlighter and blur on a screenshot or photo — several with captions make a how-to guide: one PDF or one tall picture. | annotate screenshot, screenshot annotator, mark up a screenshot, markup, draw on screenshot, draw on picture, draw on photo, arrow on screenshot, … |
+| `finder` | Screenshot Finder | PC + mobile | Hundreds of screenshots and photos, or a folder of them, read on the device — then search the words inside them: that PNR, the Wi-Fi password someone sent. | screenshot finder, search screenshots, find screenshot, search photos, find photo, search text in screenshots, search text in images, search words in pictures, … |
 | `wallpapers` | Wallpapers | PC + mobile | Wikimedia’s best photos and museums’ masterpieces, sized exactly for your phone or monitor. | wallpaper, wallpapers, wallpaper hd, hd wallpaper, 4k wallpaper, phone wallpaper, mobile wallpaper, iphone wallpaper, … |
 | `nasa` | NASA Image Explorer | PC + mobile | NASA’s pictures and videos — missions, planets, astronauts, the Earth from space; any picture as a wallpaper. | nasa, nasa images, nasa pictures, nasa photos, nasa videos, nasa image library, images.nasa.gov, space pictures, … |
 | `exif` | EXIF / Photo Info | PC + mobile | See hidden photo details (camera, date, GPS) and strip them. | gps from photo, photo details, camera info, exif, metadata, gps, location, camera, … |

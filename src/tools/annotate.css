@@ -10,7 +10,7 @@
 .an-opts > [hidden] { display: none !important; }
 .an-styleopts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .an-swatches { display: flex; flex-wrap: wrap; gap: 4px; }
-.an-swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--border); background: var(--c); cursor: pointer; padding: 0; position: relative; }
+.an-swatch { --c: transparent; width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--border); background: var(--c); cursor: pointer; padding: 0; position: relative; }
 .an-swatch[aria-pressed="true"] { outline: 3px solid var(--accent); outline-offset: 2px; }
 .an-swatch:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .an-custom { width: 36px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer; }

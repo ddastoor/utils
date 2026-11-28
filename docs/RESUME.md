@@ -55,8 +55,14 @@ CLAUDE.md §3 "Long Screenshot Stitcher"; unit `stitch` 106, e2e `stitch` 32; 43
 (`annotate`, Images, PC + mobile: arrows, boxes, circles, numbered steps, text, highlighter, pen, hidden areas burnt in — pixelated on a random grid
 with noise (imgproc `p_mosaic_rect`), blurred or Solid —, crop, undo / redo, mouse, finger and keys; several pictures with captions → a PDF (MuPDF's
 HTML layout, a step never split from its picture) or one tall picture; the Screenshot tab's "Annotate" hands a shot over; CLAUDE.md §3 "Screenshot
-Annotator & How-To Guide"; unit `annotate` 80, e2e `annotate` 78 + the Screenshot suite's hand-over; 44 KB). **Now:** 76 Screenshot Finder, then 82
-Is This Screenshot Real?, 83 Scam & QR Check, 101 Clean Link (docs/potentials.md, "Suggested order").
+Annotator & How-To Guide"; unit `annotate` 80, e2e `annotate` 78 + the Screenshot suite's hand-over; 44 KB). **Screenshot Finder (76) — DONE**
+(`finder`, Images, PC + mobile: hundreds of screenshots and photos, or a folder on a PC (File System Access, `webkitdirectory`, a folder dropped), read on
+the device by a pool of Tesseract readers in the sparse-text mode (three on a PC, one on a phone), each picture made ready by imgproc.wasm (a dark
+screen turned light, the document clean-up; screenshots with Sauvola's thresholds — measured 96.0 → 99.6 % of the test screenshots' words); the words
+searched as they are typed by our C in textcore.wasm (`find.c`: together or apart, numbers read in groups, the OCR's slips, one slip of the keyboard,
+a long code with one OCR slip), the words found marked on the picture, dates from the file names, a viewer, all the text saved; CLAUDE.md §3 "Screenshot
+Finder"; unit `finder` 77, e2e `finder` 77 + the camera sweep; 44 KB, the site 668.5 MB). **Now:** 82 Is This Screenshot Real?, then 83 Scam & QR
+Check, 101 Clean Link (docs/potentials.md, "Suggested order").
 **▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**
 **#36** (the start page's note of the other device's apps), **#34** (Watermark: the first page of a document with or without
 the mark), **#33** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff: Side by side, the lines of a change paired by the
