@@ -35,7 +35,8 @@ jobs:
       # what the suites compare the tabs with: Python 3 (as python3) with the packages they read results with (tzdata: Windows
       # has no zone database for zoneinfo; PyNaCl: the Sodium file format's reference decryptor), FFmpeg, GnuPG for Windows
       # (Git Bash's gpg is a POSIX build: a Windows GNUPGHOME reads to it as a relative path — every call failed) and
-      # ExifTool; sha256sum, patch, diff and sh come with Git for Windows, 7-Zip with the runner (zbar, unar: not on Windows
+      # ExifTool; vobject, xxhash and python-docx read back the .vcf / .ics files, a book's fingerprint and the watermarked
+      # .docx files; sha256sum, patch, diff and sh come with Git for Windows, 7-Zip with the runner (zbar, unar: not on Windows
       # — those checks say so)
       - uses: actions/setup-python@v5
         with:
@@ -46,7 +47,7 @@ jobs:
         run: |
           # (setup-python's Windows build may already carry python3.exe — then it is the same file and cp refuses)
           py="$(command -v python)"; d="$(dirname "$py")"; [ -e "$d/python3.exe" ] || cp "$py" "$d/python3.exe"
-          python -m pip install --quiet cryptography argon2-cffi bcrypt py7zr pyzipper pypdf openpyxl sqlparse sqlglot pyyaml zxcvbn numpy pillow python-gnupg ruamel.yaml tzdata pynacl
+          python -m pip install --quiet cryptography argon2-cffi bcrypt py7zr pyzipper pypdf openpyxl sqlparse sqlglot pyyaml zxcvbn numpy pillow python-gnupg ruamel.yaml tzdata pynacl vobject xxhash python-docx
           # (no GnuPG package: Chocolatey's GnuPG 2.5.21 installer never finished — run 6 hung an hour on it; the OpenPGP
           # suite uses Git for Windows' own gpg and hands it its folders as /d/a/…)
           /usr/bin/timeout 900 choco install ffmpeg exiftool -y --no-progress < /dev/null > /dev/null
