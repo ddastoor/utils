@@ -8,7 +8,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { deflateSync } from 'node:zlib';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 
 const FIX = new URL('../fixtures/diagram/', import.meta.url);
 const ROOT = new URL('../../', import.meta.url).pathname;
@@ -74,9 +74,11 @@ print(json.dumps(ET.parse(sys.argv[1]).getroot().get('content')))`, new URL('flo
   t.eq(svgDiagram('<svg content="hello"/>'), null, 'a content attribute that is no diagram: nothing');
   const fromPng = await pngDiagram(flowPng);
   t.ok(fromPng?.startsWith('<mxfile') && /Order placed/.test(fromPng), 'draw.io’s editable PNG: the <mxfile> of its text chunk');
-  t.eq(fromPng, py(`import json, sys, urllib.parse
+  // Pillow, where it is installed (pip install pillow; GitHub's runner has none): the other readers here are Python's own
+  if (spawnSync('python3', ['-I', '-c', 'import PIL']).status === 0) t.eq(fromPng, py(`import json, sys, urllib.parse
 from PIL import Image
 print(json.dumps(urllib.parse.unquote(Image.open(sys.argv[1]).info['mxfile']).strip()))`, new URL('flow.drawio.png', FIX).pathname), 'the same diagram as Pillow reads from the PNG (its tEXt chunk, unquoted)');
+  else t.ok(true, 'Pillow is not installed (pip install pillow): the PNG not read back by it');
   const XML = '<mxfile><diagram name="Plan – Größe ₹"><mxGraphModel><root/></mxGraphModel></diagram></mxfile>';
   t.eq(await pngDiagram(png([['tEXt', Buffer.concat([Buffer.from('mxfile\0', 'latin1'), Buffer.from(encodeURIComponent(XML), 'latin1')])]])), XML, 'a tEXt chunk named mxfile, written as draw.io writes it (encodeURIComponent): the diagram, letters beyond Latin-1 too');
   t.eq(await pngDiagram(png([['zTXt', Buffer.concat([Buffer.from('mxGraphModel\0\0', 'latin1'), deflateSync(Buffer.from(encodeURIComponent('<mxGraphModel><root/></mxGraphModel>'), 'latin1'))])]])), '<mxGraphModel><root/></mxGraphModel>', 'a zTXt chunk named mxGraphModel (older versions): inflated');
