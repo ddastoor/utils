@@ -56,7 +56,7 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       change. To decide when building, with the owner.
     - **Import** a file → its settings replace the stored ones and the apps that show them change at once.
     - **Which controls become settings** is the owner's choice, app by app (CLAUDE.md §1 rule 1: nothing else is stored) —
-      to be listed with him before building (e.g. the EPUB Reader's look and place, the voice and speed of the speech tabs).
+      to be listed with the owner before building (e.g. the EPUB Reader's look and place, the voice and speed of the speech tabs).
     - **The owner's wording of 28 Nov 2026** (it settles the open points above): "the storage for all the settings in the
       settings page should be in the browser. Each app should have, if necessary, … a section of that app in the settings
       page, and … also show in the UI of the settings page and settings tab. … when I change something in the settings page,
@@ -68,11 +68,18 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       has settings; both ways kept in step; a file after every change — `superutils_settings_YYYYMMDD_HHMM.json` (the year
       added so files sort across years — told to the owner; a burst of changes one file, a moment after the last; a PC with
       a folder chosen writes there, else a download). **When:** next, right after the Clipart Maker (told to the owner,
-      28 Nov 2026, as he asked about it twice), unless he says otherwise.
+      28 Nov 2026, as the owner asked about it twice), unless the owner says otherwise.
     - **A World Radio section** (owner, 28 Nov 2026: "You should remember my favorite stations once the settings page is built
       out. So now the settings page will have the world radio section in it"): the favourite stations of World Radio
       (`docs/potentials.md` #116 — not built yet) — kept in the browser, in the settings file, exported and imported with the
       rest.
+    - **A World Clock section** (owner, 28 Nov 2026: "Add a world clock section in the settings page once it's built out. Add
+      this to todo.md so that when I add new cities, it gets saved in the settings page."): the World Clock's cities — added
+      with its search or a set, moved up or down, taken off — and its 12 / 24-hour clock are kept in the browser and in the
+      settings file at once; the Settings page lists the cities (one can be taken off there, and the World Clock follows) and
+      the clock; exported and imported with the rest. Built with this item: the World Clock is in the set the owner chose on
+      28 Nov 2026 (the speech apps' voice and speed, the EPUB Reader's look, the Spell Checker's language and words, the World
+      Clock's cities and clock, Favorites, the folded list of apps).
 
 40. **EPUB Reader: "Remember book", its place and its reading voice in the Settings** (owner, 27 Nov 2026, evening: "Add an EPUB
     Reader app section in settings. Now on the EPUB Reader app page, have a toggle saying remember book. This will, at the
