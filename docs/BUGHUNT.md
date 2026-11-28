@@ -3771,3 +3771,8 @@ Found while building it (each fixed, with a check in the suites):
   phone too).
 - **The test's own comparison:** a fine checkerboard drawn 6.7 times smaller with the canvas's default smoothing aliased differently in the source
   and in the saved file (mean difference 8.7 for a correct crop); drawn with `imageSmoothingQuality = 'high'` it is 4.4.
+
+## Terminal: the empty output's name (28 Nov 2026; found by the a11y sweep under load)
+- The output `<pre>` carried `aria-label` without a role; ARIA allows no name on an element without one, and axe reports it as a fault while
+  the element is empty — before the shell has printed its welcome (the sweep met it when the machine was busy). The output is a `role="log"`
+  now (the role of a terminal's output; `aria-live` as before). e2e `terminal`: axe on the emptied output — the old build fails it.

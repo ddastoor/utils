@@ -83,6 +83,15 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await page.getByRole('button', { name: 'Download n.txt' }).click();
   ok(await page.getByText(/n\.txt: no such file or folder \(removed or renamed meanwhile\?\)/).first().waitFor({ timeout: 10000 }).then(() => true, () => false), 'a file removed while its download waited: said in words');
 
+  // the output before the shell has said anything (the a11y sweep met it under load, 28 Nov 2026): its label is on a log, not on a plain
+  // <pre> — ARIA allows no name on an element without a role
+  const ax = await newPage({ bypassCSP: true });
+  await ax.goto(base + '#/terminal'); await ax.locator('.term-out').waitFor();
+  await ax.evaluate(() => { document.querySelector('.term-out').textContent = ''; });
+  await ax.addScriptTag({ content: readFileSync(new URL('../../node_modules/axe-core/axe.min.js', import.meta.url), 'utf8') });
+  const v = await ax.evaluate(async () => (await window.axe.run('.term-out', { runOnly: { type: 'rule', values: ['aria-prohibited-attr', 'aria-allowed-attr', 'aria-allowed-role'] } })).violations.map((x) => x.id));
+  ok(!v.length && await ax.locator('.term-out').getAttribute('role') === 'log', `the empty output: a log with its name, no ARIA fault (${v.join(', ')})`);
+
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/terminal');
   ok(/PC|computer|desktop/i.test(await phone.locator('body').innerText()), 'phone: explains the terminal is PC only');

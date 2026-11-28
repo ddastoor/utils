@@ -37,7 +37,7 @@ export const mount: Mount = (root) => {
   let worker: Worker, seq = 0, busy = false, prompt = 'user@superutils:~$ ', cwd = '/home/user', live = true;
   const pend = new Map<number, (r: Reply) => void>();
   const ansi = {} as { fg?: string; bold?: boolean; ul?: boolean };
-  const screen = h('pre', { class: 'term-out', 'aria-live': 'polite', 'aria-label': 'Terminal output' });
+  const screen = h('pre', { class: 'term-out', role: 'log', 'aria-live': 'polite', 'aria-label': 'Terminal output' });
   const promptEl = h('span', { class: 'term-prompt' }, prompt);
   const inp = h('input', { class: 'term-in', 'aria-label': 'Command', spellcheck: 'false', autocomplete: 'off', autocapitalize: 'off' }) as HTMLInputElement;
   const line = h('div', { class: 'term-line' }, promptEl, inp);
