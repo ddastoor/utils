@@ -36,23 +36,31 @@ Every candidate:
 
 Platform: "both" = PC + mobile.
 
-## Suggested order (27 Nov 2026 — Claude's suggestion at the owner's request; nothing accepted until the owner picks)
-The owner, 27 Nov 2026: "Come up with the list of what you think we should build out next from potentials … do some grouping
-based on common implementation … make the suggestions". The site then: **563.5 MB** of 1 GB (`du -sb dist`, d83ed0d).
-1. **Reading on the phone and the Kindle** (the owner's first case; MuPDF, the reading path, the EPUB writer, the voices —
-   all on the site; ≈ 0.5 MB): 96 Book Page Flattener (also as a step of the OCR and the Photo Dictionary for printed books)
-   · 110 Newspaper Clipper · 109 PDF for Kindle · 71 EPUB Reader · 106 Articles → Kindle · 14 PDF / EPUB → Audiobook.
-   **Picked by the owner, 27 Nov 2026 ("Go ahead with group 1") — built: 96 Book Page Flattener (the tab `bookflat`), 110 Newspaper Clipper (the tab `clipper`), 109 PDF for Kindle (the tab `kindlepdf`), 71 EPUB Reader (the tab `ebook`), 106 Articles → Kindle (the tab `articles`) and 14 PDF / EPUB → Audiobook (the tab `audiobook`), all 27 Nov 2026 — taken off the list below; and the flattener as a step of the OCR and the Photo Dictionary (built and measured the same day: CLAUDE.md §3 OCR, "Books"). **Group 1 is done.**
-2. **PDF and ID tools for India** (MuPDF, the OCR, mathcore's checks, the Text Diff's new pairing; ≈ 0 MB): 16 PDF Tables →
-   Excel · 61 PDF Redact · 93 Safe ID Copy · 84 Number Detective · 15 PDF Compare · 3 Make PDF Searchable.
-3. **The owner's own asks, larger** (≈ 55 – 60 MB, nearly all draw.io): 10 Spell Checker · 73 World Clock · 75 SliceDiceGrapher
-   with 25 Chart Maker in it · 1 Image to SVG and 117 Clipart Maker (one tracing engine) · 54 Diagram Editor.
-4. **Camera helpers** (the OCR and the QR tab's writers; ≈ 0 MB): 89 Visiting Card → Contact · 88 Router Sticker → Wi-Fi QR ·
-   77 Paper Deadlines → Calendar · 78 Bill Splitter by Photo · 81 Camera Reader.
-**Groups 2 – 4 picked by the owner, 27 Nov 2026 ("Okay, go for it. Build out all the groups, all the remaining groups in
-whichever order you feel best") — being built (docs/RESUME.md); built: 84 Number Detective (the tab `numcheck`, 27 Nov 2026), 61 PDF Redact (the tab `pdf-redact`, 27 Nov 2026), 93 Safe ID Copy (the tab `idcopy`, 27 Nov 2026), 3 Make PDF Searchable (the tab `pdf-ocr`, 27 Nov 2026), 15 PDF Compare (the tab `pdf-compare`, 27 Nov 2026), 16 PDF Tables → Excel (the tab `pdf-tables`, 27 Nov 2026) — group 2 is done; group 4: 88 Router Sticker → Wi-Fi QR (the tab `wifiqr`, 27 Nov 2026), 89 Visiting Card → Contact (the tab `visitcard`, 28 Nov 2026), 77 Paper Deadlines → Calendar (the tab `deadlines`, 28 Nov 2026), 78 Bill Splitter by Photo (the tab `billsplit`, 28 Nov 2026), 81 Camera Reader (the tab `camreader`, 28 Nov 2026) — group 4 is done; group 3: 73 World Clock (the tab `worldclock`, 28 Nov 2026), 10 Spell Checker (the tab `spell`, 28 Nov 2026; measured 1.8 MB), 1 Image to SVG and 117 Clipart Maker (the tabs `tosvg` and `clipart`, 28 Nov 2026; measured 4.9 MB — the cut-out model 4.6 MB), 75 SliceDiceGrapher with 25 Chart Maker in it (the tab `slicedice`, 28 Nov 2026; measured 4.2 MB — Perspective 3.3 MB, ECharts 0.7 MB; the site 578.8 MB), 54 Diagram Editor (the tab `diagram`, 28 Nov 2026; draw.io 32.7.7, measured 52.9 MB in 2,719 files — PlantUML's own converter, client-side, kept; the site 631.7 MB) — group 3 is done.** All four: about 620 MB of the 1 GB. Held back for now: the large models (5 Vocal Remover 180 MB, 67 Object Eraser 208 MB,
-22 LaTeX ≈ 175 MB), 4 Document Converter (58.6 MB), and the niche PC tools. The size check of the rule is made again,
-measured, for each app the owner picks.
+## Suggested order (28 Nov 2026 — Claude's second suggestion, at the owner's request; nothing accepted until the owner picks)
+The owner, 28 Nov 2026: "Suggest what to do next from potentials.md.. you can group if you want based on shared functionality".
+The site: **668.3 MB** of 1 GB (≈ 332 MB of room). The first suggestion (27 Nov 2026: four groups — reading on the phone and the
+Kindle, PDF and ID tools for India, the owner's larger asks, camera helpers) was picked whole and built 27 – 28 Nov 2026.
+1. **World Radio and pictures from the web** — the owner's latest wishes (28 Nov: World Radio's favourites in the Settings page,
+   playing on in other tabs, a station that fails said and skipped; radio and wallpapers his examples of allowed data): 116 World
+   Radio · 115 Wallpapers from Wikimedia and Museums · 114 NASA Image Explorer. Shared: approved data hosts, pictures sized to the
+   screen (BlazeFace's crop, @jsquash/resize, MozJPEG), a Settings section. ≈ 0.2 MB (hls.js). The hosts are approved with the pick.
+2. **Screenshots and scams** — 87 Long Screenshot Stitcher (the Screenshot tab's scrolling engine, imgproc's `p_scroll_match`) ·
+   113 Screenshot Annotator & How-To Guide · 76 Screenshot Finder (the OCR) · 82 Is This Screenshot Real? · 83 Scam & QR Check ·
+   101 Clean Link (83 and 101 share one link checker: the real site's name, look-alike letters). ≈ 1 MB.
+3. **The camera, round 2** — 100 Magnifier · 80 Measure from a Photo · 98 Old Photo Album Scanner · 103 Handwriting Analysis ·
+   92 Social Media Sizer. Shared: the live camera, the page finder and the homography, MediaPipe's faces. ≈ 0 MB.
+4. **Frames of a video** — 99 Best Shot from a Video · 17 Video Face Blur · 85 Lecture Video → Slides · 64 Subtitle Sync · 6 GIF
+   Maker. Shared: WebCodecs + mediabunny reading frames, the faces, the OCR. ≈ 0.7 MB (gifski).
+5. **Making documents** — 72 PDF / EPUB Creator · 97 Printable Paper · 18 Label & Sticker Sheet Maker · 90 Family Emergency Card ·
+   91 PDF Library Search. Shared: MuPDF's layout and the Noto fonts, the EPUB writer, zxing's codes. ≈ 0 – 0.3 MB.
+6. **India first: money, IDs, places, dates** — 111 Trip Settle-Up (the Bill Splitter's engine; a UPI QR for each payment) · 30
+   Aadhaar & e-Invoice QR Verifier · 31 DIGIPIN & Plus Codes · 34 Calendar Converter. Shared: mathcore, zxing, WebCrypto. ≈ 0 MB.
+7. **Folders on a PC (Windows and Linux)** — 102 Folder Space Map · 112 Backup Checker · 20 Duplicate Photo Finder · 63 Photo
+   Organizer. Shared: File System Access, hash-wasm, ExifTool. ≈ 0 MB.
+All seven: ≈ 2 MB. **Bigger — each after its size check:** U3 our own FFmpeg (the stabiliser, Rubber Band, VP9 / H.265; + 5 – 15
+MB, 1 – 2 days) · 4 Document Converter (Pandoc, 58.6 MB) · 2 Photo Upscaler (4.8 MB; the best model 33.7) · 55 Cut Out Anything
+(14 – 34 MB). Held back for room: 5 Vocal Remover (180 MB), 67 Object Eraser (208 MB), 22 LaTeX (≈ 175 MB). **Not suggested:**
+118 (checked: no gain), 119 (bends the lazy-loading rule; measure first), 33 (the Number Detective reads phone numbers already).
 
 ## Size check of every candidate (20 Nov 2026)
 The site is **512 MB** (511,614,356 bytes, `du -sb dist`, after Speech to Text was removed on 20 Nov 2026 — it was

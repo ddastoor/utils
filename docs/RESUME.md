@@ -29,8 +29,9 @@ the Cartoonizer's WebGL probe (TF.js's context is refused where Chrome draws in 
 anime looks, Python, lazy loading) **1,346 / 1,346** — its notes: Chrome 158 shows no private window (the Settings page then treats it
 as a normal one; no crash on Windows), the contrast failure was a 150 ms fade measured half-way (axe waits now). **Run 22**
 (the Windows check's new Linux job, `linux: true` — Google Chrome 158 on Ubuntu): Settings and the anime looks 122 / 122; Chrome 158 on
-Linux does not close itself when a private window reads the folder back (only Chromium 153 does). **Next:** the owner's pick from
-docs/potentials.md (the process at the top of CLAUDE.md).
+Linux does not close itself when a private window reads the folder back (only Chromium 153 does). **Next:** the owner asked
+(28 Nov 2026) for a suggestion from docs/potentials.md, grouped by shared functionality — given in seven groups ("Suggested order"
+at the top of docs/potentials.md); waiting for the pick, then the size check of each app picked, then build.
 **▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**
 **#36** (the start page's note of the other device's apps), **#34** (Watermark: the first page of a document with or without
 the mark), **#33** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff: Side by side, the lines of a change paired by the
