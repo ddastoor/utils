@@ -57,7 +57,8 @@ Kindle, PDF and ID tools for India, the owner's larger asks, camera helpers) was
    Aadhaar & e-Invoice QR Verifier · 31 DIGIPIN & Plus Codes · 34 Calendar Converter. Shared: mathcore, zxing, WebCrypto. ≈ 0 MB.
 7. **Folders on a PC (Windows and Linux)** — 102 Folder Space Map · 112 Backup Checker · 20 Duplicate Photo Finder · 63 Photo
    Organizer. Shared: File System Access, hash-wasm, ExifTool. ≈ 0 MB.
-All seven: ≈ 2 MB. **Bigger — each after its size check:** U3 our own FFmpeg (the stabiliser, Rubber Band, VP9 / H.265; + 5 – 15
+All seven: ≈ 2 MB. **Picked by the owner, 28 Nov 2026 ("Ok go ahead with the order you suggest") — being built in this order;
+each app taken off the lists below when it is built.** **Bigger — each after its size check:** U3 our own FFmpeg (the stabiliser, Rubber Band, VP9 / H.265; + 5 – 15
 MB, 1 – 2 days) · 4 Document Converter (Pandoc, 58.6 MB) · 2 Photo Upscaler (4.8 MB; the best model 33.7) · 55 Cut Out Anything
 (14 – 34 MB). Held back for room: 5 Vocal Remover (180 MB), 67 Object Eraser (208 MB), 22 LaTeX (≈ 175 MB). **Not suggested:**
 118 (checked: no gain), 119 (bends the lazy-loading rule; measure first), 33 (the Number Detective reads phone numbers already).

@@ -29,9 +29,13 @@ the Cartoonizer's WebGL probe (TF.js's context is refused where Chrome draws in 
 anime looks, Python, lazy loading) **1,346 / 1,346** — its notes: Chrome 158 shows no private window (the Settings page then treats it
 as a normal one; no crash on Windows), the contrast failure was a 150 ms fade measured half-way (axe waits now). **Run 22**
 (the Windows check's new Linux job, `linux: true` — Google Chrome 158 on Ubuntu): Settings and the anime looks 122 / 122; Chrome 158 on
-Linux does not close itself when a private window reads the folder back (only Chromium 153 does). **Next:** the owner asked
-(28 Nov 2026) for a suggestion from docs/potentials.md, grouped by shared functionality — given in seven groups ("Suggested order"
-at the top of docs/potentials.md); waiting for the pick, then the size check of each app picked, then build.
+Linux does not close itself when a private window reads the folder back (only Chromium 153 does). **▶▶▶▶ 28 Nov 2026, evening — IN PROGRESS: the owner's "Ok go ahead with the order you suggest"** — the seven groups of the
+suggestion (docs/potentials.md "Suggested order", ≈ 2 MB in all; the size given with it), in order: 1 World Radio (116), Wallpapers
+(115), NASA Image Explorer (114) → 2 screenshots and scams (87, 113, 76, 82, 83, 101) → 3 the camera round 2 (100, 80, 98, 103, 92)
+→ 4 frames of a video (99, 17, 85, 64, 6) → 5 making documents (72, 97, 18, 90, 91) → 6 India first (111, 30, 31, 34) → 7 folders
+on a PC (102, 112, 20, 63). The bigger ones (U3, 4, 2, 55) wait for their own size check. Picking group 1 approves its data hosts;
+this environment's network allows them since 28 Nov (radio-browser de1 / de2 / all, Wikimedia, Met, AIC, Cleveland, NASA). Each app
+committed and pushed when done and taken off potentials.md. **Now:** World Radio.
 **▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**
 **#36** (the start page's note of the other device's apps), **#34** (Watermark: the first page of a document with or without
 the mark), **#33** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff: Side by side, the lines of a change paired by the
